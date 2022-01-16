@@ -22,12 +22,22 @@ func main() {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"hello", // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
+		"",    // name
+		false, // durable
+		false, // delete when unused
+		false, // exclusive
+		false, // no-wait
+		nil,   // arguments
+	)
+	failOnError(err, "Failed to declare a queue")
+
+	q2, err := ch.QueueDeclare(
+		"",    // name
+		false, // durable
+		false, // delete when unused
+		false, // exclusive
+		false, // no-wait
+		nil,   // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 
@@ -51,6 +61,15 @@ func main() {
 	)
 	failOnError(err, "Failed to bind a queue")
 
+	err = ch.QueueBind(
+		q2.Name, // queue name
+		"",      // routing key
+		"hello", // exchange
+		false,
+		nil,
+	)
+	failOnError(err, "Failed to bind a queue")
+
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
@@ -61,11 +80,28 @@ func main() {
 		nil,    // args
 	)
 	failOnError(err, "Failed to register a consumer")
+
+	msgs2, err := ch.Consume(
+		q2.Name, // queue
+		"",      // consumer
+		true,    // auto-ack
+		false,   // exclusive
+		false,   // no-local
+		false,   // no-wait
+		nil,     // args
+	)
+	failOnError(err, "Failed to register a consumer")
 	forever := make(chan bool)
 
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
+			log.Printf("msgs Received a message: %s", d.Body)
+		}
+	}()
+
+	go func() {
+		for d := range msgs2 {
+			log.Printf("msgs2 Received a message: %s", d.Body)
 		}
 	}()
 
